@@ -11,3 +11,9 @@ pub struct AddArgs {
     #[arg(short, long, value_name = "MEAL", required = true, help = "The meal the food was eaten during.")]
     meal: String,
 }
+
+#[derive(Debug, Clone, Args)]
+pub struct EditArgs {
+    #[arg(short, long, value_name = "ENTRY_ID", required = true, help = "The ID of the journal entry")]
+    id: String,
+}
