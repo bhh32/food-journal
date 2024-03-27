@@ -1,72 +1,116 @@
-use csv::ReaderBuilder;
-use serde::Deserialize;
-use std::error::Error;
+use rusqlite::{params, Connection, Error};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum Meal {
     BREAKFAST,
     BRUNCH,
     LUNCH,
     LINNER,
-    DINNER
+    DINNER,
+    SNACK,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct Entry {
-    #[serde(rename = "ID")]
-    id: u64,
-    #[serde(rename = "Meal")]
-    meal: Meal,
-    #[serde(rename = "Food")]
+    id: i64,
+    meal: String,
     food: String,
-    #[serde(rename = "Time")]
-    time: Option<String>,
-    #[serde(rename = "Date")]
+    time: String,
     date: String,
 }
 
-impl Entry {
-    pub fn add(meal: Meal, food: String, time: Option<String>, date: String) -> Result<(), Box<dyn Error>>{
-        let mut record_container = Vec::<Entry>::new();
+const DB_PATH: &str = "./journal.db";
 
-        let journal = std::fs::File::open("food_journal.csv")?;
-        let mut rdr = ReaderBuilder::new()
-            .has_headers(true)
-            .from_reader(journal);
+pub fn edit(_id: u64) {
+    todo!();
+}
 
-        for result in rdr.deserialize() {
-            let record: Entry = result?;
-            record_container.push(record);
+pub fn add(meal: Meal, food: String, time: String, date: String)  -> Result<(), Error> {
+    
+
+    let _rng = rand::thread_rng();
+
+    
+
+    // Create the database if it doesn't exist
+    let db = Connection::open(DB_PATH).expect("Database connected to...");
+    
+    // Create table if it doesn't exist.
+    db.execute("CREATE TABLE IF NOT EXISTS journal (
+        id INTEGER PRIMARY KEY,
+        meal TEXT NOT NULL,
+        food TEXT NOT NULL,
+        time TEXT NULL,
+        date TEXT NOT NULL
+    )", [],)?;
+
+    let new_id = db.query_row("SELECT id FROM journal ORDER BY id DESC LIMIT 1", [], |row| {
+        match row.get(0)? {
+            Ok(val) => val + 1,
+            Err(e) => {
+                eprintln!("Error getting last row id...");
+                panic!();
+            },
+        }
+    })?;
+        
+    let new_entry = Entry {
+        id: new_id,
+        meal: match meal {
+            Meal::BREAKFAST => String::from("breakfast"),
+            Meal::BRUNCH => String::from("brunch"),
+            Meal::LUNCH => String::from("lunch"),
+            Meal::LINNER => String::from("linner"),
+            Meal::DINNER => String::from("dinner"),
+            Meal::SNACK => String::from("snack"),
+        },
+        food,
+        time,
+        date,
+    };
+
+    db.execute(
+        "INSERT INTO journal (id, meal, food, time, date) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params!(&new_entry.id, &new_entry.meal, &new_entry.food, &new_entry.time, &new_entry.date),
+    )?;
+
+    println!("Debug: Data inserted!");
+
+    Ok(())
+}
+
+pub fn list_all() -> Result<(), Error> {
+    let db = Connection::open(DB_PATH)?;
+
+    let mut req = db.prepare("SELECT * FROM journal")?;
+
+    let req_iter = req.query_map([], |row| {
+        Ok(Entry {
+            id: row.get(0)?,
+            meal: row.get(1)?,
+            food: row.get(2)?,
+            time: row.get(3)?,
+            date: row.get(4)?,
+        })
+    }).expect("Could not print out the database!");
+
+    for entry in req_iter {
+        match entry {
+            Ok(ent) => {
+                println!("{} {} {} {} {}", ent.id, ent.meal, ent.food, ent.time, ent.date);
+            },
+            Err(e) => eprint!("Bad Data!!\n{e}"),
         }
 
-        let last_id = record_container[record_container.len() - 1].id;
-
-        let new_entry: Entry = Entry {
-            id: last_id + 1,
-            meal,
-            food,
-            time,
-            date
-        };
-
-        record_container.push(new_entry);
-
-        Ok(())
     }
 
-    pub fn edit(id: u64) {
-        todo!();
-    }
+    Ok(())
 }
 
-pub fn list_all() {
+pub fn list_range(_start: String, _end: String) {
     todo!();
 }
 
-pub fn list_range(start: String, end: String) {
+pub fn list_single(_id: u64) {
     todo!();
-}
-
-pub fn list_single(id: u64) {
-
 }
