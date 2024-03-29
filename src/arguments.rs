@@ -24,9 +24,11 @@ pub struct EditArgs {
 #[derive(Debug, Clone, Args)]
 pub struct ListArgs {
     #[arg(short, long, help = "List all journal entries.")]
-    all: bool,
+    pub all: bool,
+    #[arg(short, long, required = false, help = "List a single journal entry with the listed id.")]
+    pub id: Option<i32>,
     #[arg(short, long, value_name = "START_DATE", requires = "end_date", help = "Start date for listed journal entries.")]
-    start_date: Option<String>,
+    pub start_date: Option<String>,
     #[arg(short, long, value_name = "END_DATE", requires = "start_date", help = "End date for listed journal entries.")]
-    end_date: Option<String>,
+    pub end_date: Option<String>,
 }

@@ -4,7 +4,7 @@ pub mod records;
 
 use cli::{Cli, Commands};
 use records::*;
-use clap::Parser;
+use clap::{Parser};
 
 fn main() {
     let cli = Cli::parse();
@@ -29,8 +29,35 @@ fn main() {
         Commands::Edit(args) => {
             println!("{args:?}");
         },
-        Commands::List(_args) => {
-            let _ = list_all();
+        Commands::List(args) => {
+            if args.all {
+                let _ = list_all();
+                return;
+            }
+            let id = match args.id {
+                Some(found_id) => {
+                    println!("Debug found_id: {found_id}");
+
+                    if found_id > 0 {
+                        let _ = list_single(found_id);
+                        return;
+                    }
+                },
+                None => {
+                    
+                }
+            };
+            let (start_date, end_date) = (args.start_date, args.end_date);
+            
+             let _start_date = match start_date {
+                Some(s_date) => s_date,
+                None => String::new(),
+             };
+
+             let _end_date = match end_date {
+                Some(e_date) => e_date,
+                None => String::new()
+             };
         }
     }
 }
