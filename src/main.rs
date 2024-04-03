@@ -34,12 +34,15 @@ fn main() {
                 let _ = list_all();
                 return;
             }
-            let id = match args.id {
+            let _id = match args.id {
                 Some(found_id) => {
                     println!("Debug found_id: {found_id}");
 
                     if found_id > 0 {
-                        let _ = list_single(found_id);
+                        match list_single(found_id) {
+                            Ok(_) => println!("List printed!"),
+                            Err(e) => eprintln!("Something went wrong: {e}"),
+                        };
                         return;
                     }
                 },
@@ -58,6 +61,8 @@ fn main() {
                 Some(e_date) => e_date,
                 None => String::new()
              };
+
+             list_range(_start_date, _end_date);
         }
     }
 }

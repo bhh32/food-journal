@@ -1,4 +1,5 @@
 use rusqlite::{params, Connection, Error};
+use chrono::NaiveDate;
 
 /// Defines the type of meal that can be entered into the jounal.
 #[derive(Debug, Clone)]
@@ -22,7 +23,7 @@ pub struct Entry {
 }
 
 // The jounal database SQLite file path/name.
-const DB_PATH: &str = "./journal.db";
+const DB_PATH: &str = "/home/bryan/Documents/food_journal/journal.db";
 
 pub fn edit(_id: u64) {
     todo!();
@@ -112,7 +113,7 @@ pub fn list_all() -> Result<(), Error> {
     for entry in req_iter {
         match entry {
             Ok(ent) => {
-                println!("{} {} {} {} {}", ent.id, ent.meal, ent.food, ent.time, ent.date);
+                println!("{} {} {} {} {}", ent.id, ent.date, ent.time, ent.meal, ent.food);
             },
             Err(e) => eprint!("Bad Data!!\n{e}"),
         }
@@ -123,7 +124,11 @@ pub fn list_all() -> Result<(), Error> {
 }
 
 pub fn list_range(_start: String, _end: String) {
-    todo!();
+    let start_date = NaiveDate::parse_from_str(&_start, "%m/%d/%Y");
+    let end_date = NaiveDate::parse_from_str(&_end, "%m/%d/%Y");
+
+    println!("Start Date: {start_date:?}");
+    println!("End Date: {end_date:?}");
 }
 
 pub fn list_single(id: i32) -> Result<(), Error> {
@@ -131,7 +136,7 @@ pub fn list_single(id: i32) -> Result<(), Error> {
     let db = Connection::open(DB_PATH)?;
 
     // Prepare the SQL query.
-    let mut req = db.prepare("SELECT * FROM journal WHERE id = (id) VALUES (?1) LIMIT 1")?;
+    let mut req = db.prepare("SELECT * FROM journal WHERE id = (id) VALUES (?1)")?;
     let mut rows = req.query([id])?;
 
     while let Some(row) = rows.next()? {
@@ -147,7 +152,7 @@ pub fn list_single(id: i32) -> Result<(), Error> {
         let time: String = row.get(3)?;
         let date: String = row.get(4)?;
 
-        println!("{id} {meal} {food} {time} {date}");
+        println!("{id} {date} {time} {meal} {food}");
     };
 
     Ok(())
