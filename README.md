@@ -1,7 +1,7 @@
 # Food Journal
 
 ## Purpose
-Command line tool to keep track of my food intake.
+Command line tool and web application to keep track of my food intake.
 
 ## Roadmap
 Create a front-end tool - web based or desktop.
