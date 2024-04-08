@@ -62,7 +62,7 @@ fn main() {
                 None => String::new()
              };
 
-             list_range(_start_date, _end_date);
+             let _ = list_range(_start_date, _end_date);
         }
     }
 }

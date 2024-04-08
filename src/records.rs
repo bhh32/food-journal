@@ -1,5 +1,5 @@
 use rusqlite::{params, Connection, Error};
-use chrono::NaiveDate;
+use chrono::{Datelike, Days, NaiveDate};
 
 /// Defines the type of meal that can be entered into the jounal.
 #[derive(Debug, Clone)]
@@ -123,12 +123,80 @@ pub fn list_all() -> Result<(), Error> {
     Ok(())
 }
 
-pub fn list_range(_start: String, _end: String) {
-    let start_date = NaiveDate::parse_from_str(&_start, "%m/%d/%Y");
-    let end_date = NaiveDate::parse_from_str(&_end, "%m/%d/%Y");
+pub fn list_range(start: String, end: String) -> Result<(), Error> {
+    // Open the database file
+    let db = Connection::open(DB_PATH)?;
+    
+    match (NaiveDate::parse_from_str(&start, "%d%b%Y"), NaiveDate::parse_from_str(&end, "%d%b%Y")) {
+        (Ok(start_date), Ok(end_date)) => {            
+            // Subtract end from start
+            let diff = end_date.signed_duration_since(start_date);
 
-    println!("Start Date: {start_date:?}");
-    println!("End Date: {end_date:?}");
+            println!("diff: {}", diff.num_days());
+
+            for day in 0..diff.num_days() {
+                let query_date = match start_date.checked_add_days(Days::new(5)) {
+                    // Return the date if it's valid
+                    Some(date) => {
+                        let month = match date.month0() {
+                            1 => "Jan",
+                            2 => "Feb",
+                            3 => "Mar",
+                            4 => "Apr",
+                            5 => "May",
+                            6 => "Jun",
+                            7 => "Jul",
+                            8 => "Aug",
+                            9 => "Sep",
+                            10 => "Oct",
+                            11 => "Nov",
+                            12 => "Dec",
+                            _ => ""
+                        };
+
+                        let (_, yr) = date.year_ce();
+
+                        let searchable_date = format!("{}{}{}", date.day(), month, yr);
+                        println!("searchable_date: {searchable_date}");
+
+                        searchable_date
+                    },
+                    // Continue the loop if it's not a valid date.
+                    None => {
+                        println!("Debug: continuing...");
+                        continue;
+                    }
+                };
+
+                let mut query = db.prepare("SELECT * FROM journal WHERE date = (date) VALUES (?1)")?;
+                let mut rows = query.query([query_date.to_string()])?;
+
+                while let Some(row) = rows.next()? {
+                    let id: u32 = row.get(0)?;
+                    let meal: String = row.get(1)?;
+                    let food: String = row.get(2)?;
+                    let time: String = row.get(3)?;
+                    let date: String = row.get(4)?;
+            
+                    println!("{id} {date} {time} {meal} {food}");
+                }
+            }
+        },
+        (Ok(_), Err(e)) => {
+            eprintln!("End date incorrect!\n{e}");
+            return Err(Error::QueryReturnedNoRows);
+        },
+        (Err(e), Ok(_)) => {
+            eprintln!("Start date incorrect!\n{e}");
+            return Err(Error::QueryReturnedNoRows);
+        }
+        (Err(e1), Err(e2)) => {
+            eprintln!("{e1}\n{e2}");
+            return Err(Error::QueryReturnedNoRows);
+        }
+    }
+
+    Ok(())
 }
 
 pub fn list_single(id: i32) -> Result<(), Error> {
