@@ -1,10 +1,6 @@
-mod cli;
+pub mod web_logic;
 pub mod arguments;
 pub mod records;
-
-use cli::{Cli, Commands};
-use records::*;
-use clap::{Parser};
 
 fn main() {
     let cli = Cli::parse();
