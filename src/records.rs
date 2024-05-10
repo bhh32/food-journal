@@ -243,15 +243,10 @@ pub fn list_single(id: i32) -> Result<(), Error> {
         })
     }).expect("Could not print out the database!");
 
-    // Print the current jounal entry using the database row data.
+    // Print the requested jounal entry using the database row data.
     for entry in req_iter {
         match entry {
-            Ok(ent) => {
-                if ent.id > last_entry.id {
-                    println!("An entry with that ID does not exist!");
-                    return Ok(());
-                }
-                
+            Ok(ent) => {                
                 if ent.id == id {
                     println!("{} {} {} {} {}", ent.id, ent.date, ent.time, ent.meal, ent.food);
                     break;
