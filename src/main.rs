@@ -36,15 +36,15 @@ fn main() {
             }
             let _id = match args.id {
                 Some(found_id) => {
-                    println!("Debug found_id: {found_id}");
-
                     if found_id > 0 {
                         match list_single(found_id) {
-                            Ok(_) => println!("List printed!"),
+                            Ok(_) => {},
                             Err(e) => eprintln!("Something went wrong: {e}"),
                         };
-                        return;
+                    } else {
+                        println!("Food Journal doesn't contain {found_id} as an ID!");
                     }
+                    return;
                 },
                 None => {
                     

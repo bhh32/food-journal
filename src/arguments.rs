@@ -5,11 +5,11 @@ use clap::{Args, arg};
 pub struct AddArgs {
     #[arg(short, long, value_name = "FOOD", required = true, help = "The food that needs to be logged")]
     pub food: String,
-    #[arg(short, long, value_name = "TIME", required = false, help = "The time the food was eaten.")]
+    #[arg(short, long, value_name = "24HR (2400)", required = false, help = "The time the food was eaten.")]
     pub time: Option<String>,
-    #[arg(short, long, value_name = "DATE", required = true, help = "The date the food was eaten.")]
+        #[arg(short, long, value_name = "mm/dd/yyyy", required = true, help = "The date the food was eaten.")]
     pub date: String,
-    #[arg(short, long, value_name = "MEAL", required = true, value_parser = ["Breakfast", "Brunch", "Lunch", "Linner", "Dinner", "Snack"], help = "The meal the food was eaten during.")]
+    #[arg(short, long, value_name = "MEAL", required = true, value_parser = ["breakfast", "brunch", "lunch", "linner", "dinner", "snack"], help = "The meal the food was eaten during.")]
     pub meal: String,
 }
 

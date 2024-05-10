@@ -1,5 +1,5 @@
 use rusqlite::{params, Connection, Error};
-use chrono::{Datelike, Days, NaiveDate};
+use chrono::{Datelike, Duration, NaiveDate};
 
 /// Defines the type of meal that can be entered into the jounal.
 #[derive(Debug, Clone)]
@@ -20,6 +20,18 @@ pub struct Entry {
     food: String,
     time: String,
     date: String,
+}
+
+impl Default for Entry {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            meal: String::new(),
+            food: String::new(),
+            time: String::new(),
+            date: String::new(),
+        }
+    }
 }
 
 // The jounal database SQLite file path/name.
@@ -53,13 +65,7 @@ pub fn add(meal: Meal, food: String, time: String, date: String)  -> Result<(), 
             date: row.get(4)?,
         })
        // If the database is empty, create a "default" Entry that has the id of 0.
-    }).unwrap_or(Entry {
-        id: 0,
-        meal: String::new(),
-        food: String::new(),
-        time: String::new(),
-        date: String::new(),
-    });
+    }).unwrap_or(Entry::default());
 
     // Create a new id from the id of last_entry.
     let new_id = last_entry.id + 1;
@@ -135,10 +141,10 @@ pub fn list_range(start: String, end: String) -> Result<(), Error> {
             println!("diff: {}", diff.num_days());
 
             for day in 0..diff.num_days() {
-                let query_date = match start_date.checked_add_days(Days::new(5)) {
+                let query_date = match start_date + Duration::days(day) {
                     // Return the date if it's valid
-                    Some(date) => {
-                        let month = match date.month0() {
+                    date => {
+                        let month = match date.month() {
                             1 => "Jan",
                             2 => "Feb",
                             3 => "Mar",
@@ -156,22 +162,15 @@ pub fn list_range(start: String, end: String) -> Result<(), Error> {
 
                         let (_, yr) = date.year_ce();
 
-                        let searchable_date = format!("{}{}{}", date.day(), month, yr);
-                        println!("searchable_date: {searchable_date}");
-
-                        searchable_date
-                    },
-                    // Continue the loop if it's not a valid date.
-                    None => {
-                        println!("Debug: continuing...");
-                        continue;
+                        format!("{}{}{}", date.day(), month, yr)
                     }
                 };
 
-                let mut query = db.prepare("SELECT * FROM journal WHERE date = (date) VALUES (?1)")?;
-                let mut rows = query.query([query_date.to_string()])?;
+                println!("Debug: query_date = {query_date}");
+                let mut query = db.prepare("SELECT * FROM journal WHERE date = (:date) ($1)").unwrap();
+                let mut rows = query.query([&query_date]).expect(&format!("No rows for {query_date}"));
 
-                while let Some(row) = rows.next()? {
+                while let Some(row) = rows.next().unwrap() {
                     let id: u32 = row.get(0)?;
                     let meal: String = row.get(1)?;
                     let food: String = row.get(2)?;
@@ -200,28 +199,69 @@ pub fn list_range(start: String, end: String) -> Result<(), Error> {
 }
 
 pub fn list_single(id: i32) -> Result<(), Error> {
-    // Open the database file
+// Open the database file
     let db = Connection::open(DB_PATH)?;
-
-    // Prepare the SQL query.
-    let mut req = db.prepare("SELECT * FROM journal WHERE id = (id) VALUES (?1)")?;
-    let mut rows = req.query([id])?;
-
-    while let Some(row) = rows.next()? {
-        // Error checking not working, fix...
-        if id != row.get(0)? {
-            eprintln!("Entry for that ID not found!");
-            break;
+    
+    // Get the last jounal entry in the jounal database.
+    let last_entry = db.query_row("SELECT * FROM journal ORDER BY id DESC LIMIT 1", [], |row| {
+        // Get the id from the last entry
+        let row_id: i32 = row.get(0)?;
+        
+        if row_id < id {
+            // If the last id is smaller than the given id return a default entry with a -1 id for error handling.
+            return Ok(Entry {
+                id: -1,
+                ..Entry::default()
+            })
+        } else {
+            // Otherwise, return a default entry with the given row id
+            Ok(Entry {
+                id: row_id,
+                ..Entry::default()
+            })
         }
+    })
+    .unwrap();
+    
+    // If the id is -1 print an error message and close the utility
+    if last_entry.id == -1 {
+        eprintln!("The ID {id} doesn't exist!");
+        return Ok(());
+    }
+    
+    // Prepare the SQL query.
+    let mut req = db.prepare("SELECT * FROM journal")?;
 
-        let id: u32 = row.get(0)?;
-        let meal: String = row.get(1)?;
-        let food: String = row.get(2)?;
-        let time: String = row.get(3)?;
-        let date: String = row.get(4)?;
+    // Loop through each jounal database row and put them in a MappedRow of Entry data
+    let req_iter = req.query_map([], |row| {
+        Ok(Entry {
+            id: row.get(0)?,
+            meal: row.get(1)?,
+            food: row.get(2)?,
+            time: row.get(3)?,
+            date: row.get(4)?,
+        })
+    }).expect("Could not print out the database!");
 
-        println!("{id} {date} {time} {meal} {food}");
-    };
+    // Print the current jounal entry using the database row data.
+    for entry in req_iter {
+        match entry {
+            Ok(ent) => {
+                if ent.id > last_entry.id {
+                    println!("An entry with that ID does not exist!");
+                    return Ok(());
+                }
+                
+                if ent.id == id {
+                    println!("{} {} {} {} {}", ent.id, ent.date, ent.time, ent.meal, ent.food);
+                    break;
+                } else {
+                    continue;
+                }
+            },
+            Err(e) => eprint!("Bad Data!!\n{e}"),
+        }
+    }
 
     Ok(())
 }
