@@ -35,7 +35,7 @@ impl Default for Entry {
 }
 
 // The jounal database SQLite file path/name.
-const DB_PATH: &str = "/home/bryan/Documents/food_journal/journal.db";
+const DB_PATH: &str = "./journal.db";
 
 pub fn edit(_id: u64) {
     todo!();
@@ -138,7 +138,7 @@ pub fn list_range(start: String, end: String) -> Result<(), Error> {
             // Subtract end from start
             let diff = end_date.signed_duration_since(start_date);
 
-            println!("diff: {}", diff.num_days());
+            // println!("diff: {}", diff.num_days());
 
             for day in 0..diff.num_days() {
                 let query_date = match start_date + Duration::days(day) {
@@ -166,8 +166,8 @@ pub fn list_range(start: String, end: String) -> Result<(), Error> {
                     }
                 };
 
-                println!("Debug: query_date = {query_date}");
-                let mut query = db.prepare("SELECT * FROM journal WHERE date = (:date) ($1)").unwrap();
+                // println!("Debug: query_date = {query_date}");
+                let mut query = db.prepare("SELECT * FROM journal WHERE date = ($1)").unwrap();
                 let mut rows = query.query([&query_date]).expect(&format!("No rows for {query_date}"));
 
                 while let Some(row) = rows.next().unwrap() {
